@@ -8,8 +8,8 @@ static uint64 next_id = 1;
 static int cur_prime = 0;
 
 static job all_jobs_init[12289] = {0};
-static job *all_jobs = all_jobs_init;
-static size_t all_jobs_cap = 12289; /* == primes[0] */
+job *all_jobs = all_jobs_init;
+size_t all_jobs_cap = 12289; /* == primes[0] */
 static size_t all_jobs_used = 0;
 
 static int hash_table_was_oom = 0;

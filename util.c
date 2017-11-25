@@ -91,7 +91,6 @@ warn_systemd_ignored_option(char *opt, char *arg)
     }
 }
 
-
 static void usage(int code) __attribute__ ((noreturn));
 static void
 usage(int code)
@@ -113,9 +112,45 @@ usage(int code)
             " -n       do not compact the binlog\n"
             " -v       show version information\n"
             " -V       increase verbosity\n"
+            " -d       dump logged jobs ids\n"
             " -h       show this help\n",
             progname, JOB_DATA_SIZE_LIMIT_DEFAULT, Filesizedef);
     exit(code);
+}
+
+extern job *all_jobs;
+extern size_t all_jobs_cap;
+static void dump(Server *srv) __attribute__ ((noreturn));
+static void
+dump(Server *srv)
+{
+  int r;
+  size_t i;
+  job j;
+  struct job list = {};
+
+  if (!srv->wal.use) {
+    fprintf(stderr, "Can only dump from log, specify -b first\n\n");
+    usage(6);
+  }
+
+  list.prev = list.next = &list;
+  walinit(&srv->wal, &list);
+  r = prot_replay(srv, &list);
+  if (!r) {
+    twarnx("failed to replay log");
+    exit(1);
+  }
+
+  for (i = 0; i < all_jobs_cap; i++) {
+    j = all_jobs[i];
+    while (j) {
+      printf("%ld\n", j->r.id);
+      j = j->ht_next;
+    }
+  }
+
+  exit(0);
 }
 
 
@@ -195,6 +230,9 @@ optparse(Server *s, char **argv)
                     exit(0);
                 case 'V':
                     verbose++;
+                    break;
+                case 'd':
+                    dump(s);
                     break;
                 default:
                     warnx("unknown flag: %s", arg-2);
